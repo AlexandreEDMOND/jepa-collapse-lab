@@ -1,0 +1,17 @@
+# Debug config: CIFAR-10, for fast iteration. Same pipeline, smaller images.
+dataset:
+  name: cifar10
+  root: data
+  image_size: 32
+
+augmentation:
+  crop_scale: [0.3, 1.0]
+  jitter_strength: 0.4
+  grayscale_p: 0.2
+  blur_p: 0.2
+
+loader:
+  batch_size: 128
+  num_workers: 2
+
+seed: 0

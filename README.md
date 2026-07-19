@@ -114,34 +114,46 @@ VICReg makes the fight against collapse fully explicit: invariance, variance, de
 The visual punchline: **the naive model collapses, the other two don't** — visible in one
 variance curve, one heatmap, one spectrum.
 
-## Repository structure (planned)
+## Repository structure
 
 ```
-├── configs/            # one config per experiment (naive / barlow_twins / vicreg)
-├── src/
-│   ├── data/           # STL-10 / CIFAR-10 loaders, augmentation pipeline
-│   ├── models/         # ResNet-18 backbone, MLP projector
-│   ├── losses/         # naive, barlow_twins, vicreg
-│   ├── diagnostics/    # variance, covariance, spectrum, effective rank, UMAP
-│   └── eval/           # linear probe
-├── scripts/            # train.py, diagnose.py, make_figures.py
-├── tests/
-└── results/            # figures & metrics
+├── configs/                     # stl10.yaml, cifar10_debug.yaml
+├── src/jepa_collapse_lab/
+│   ├── config.py                # YAML config loading
+│   ├── data/                    # two-view augmentations, dataset & loader builders
+│   ├── models/                  # ResNet-18 backbone, MLP projector      (Phase 2)
+│   ├── losses/                  # naive, Barlow Twins, VICReg            (Phase 3)
+│   ├── diagnostics/             # variance, covariance, spectrum, rank   (Phase 4)
+│   └── eval/                    # linear probe                           (Phase 5)
+├── scripts/
+│   └── visualize_pairs.py       # augmentation sanity check
+├── tests/                       # smoke test + data-pipeline tests
+└── results/figures/             # generated figures
 ```
 
 ## Quickstart
 
 ```bash
 uv sync
+uv run pytest
 
-# train the three variants (same budget, same seed)
-uv run scripts/train.py experiment=naive
-uv run scripts/train.py experiment=barlow_twins
-uv run scripts/train.py experiment=vicreg
+# Phase 1 sanity check: visualize augmented pairs (downloads the dataset on first run)
+uv run scripts/visualize_pairs.py --config configs/cifar10_debug.yaml   # fast debug
+uv run scripts/visualize_pairs.py --config configs/stl10.yaml           # main dataset
 
-# diagnostics + linear probe + figures
-uv run scripts/diagnose.py --all
+# Phase 2+ (upcoming): train the three variants, then run diagnostics
+# uv run scripts/train.py experiment=naive
+# uv run scripts/train.py experiment=barlow_twins
+# uv run scripts/train.py experiment=vicreg
+# uv run scripts/diagnose.py --all
 ```
+
+The augmentation pipeline in action — two independent views of the same image
+(random crop, flip, color jitter, grayscale, blur):
+
+| CIFAR-10 (debug) | STL-10 (main dataset) |
+| --- | --- |
+| ![augmented pairs on CIFAR-10](results/figures/augmented_pairs_cifar10.png) | ![augmented pairs on STL-10](results/figures/augmented_pairs_stl10.png) |
 
 ## Roadmap
 

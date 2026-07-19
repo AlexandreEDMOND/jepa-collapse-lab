@@ -2,25 +2,25 @@
 
 Status legend: `[ ]` todo · `[x]` done
 
-## Phase 0 — Project scaffolding
+## Phase 0 — Project scaffolding ✅
 
-- [ ] `uv init`, dependencies: `torch`, `torchvision`, `matplotlib`, `scikit-learn`,
+- [x] `uv init`, dependencies: `torch`, `torchvision`, `matplotlib`, `scikit-learn`,
       `umap-learn`, `einops`, `pyyaml`, `tqdm`, `pytest`, `ruff`
-- [ ] repo layout: `src/`, `scripts/`, `configs/`, `tests/`, `results/`
-- [ ] lint config (ruff) + minimal CI (optional)
-- [ ] smoke test: forward pass of a tiny model on a random batch
+- [x] repo layout: `src/`, `scripts/`, `configs/`, `tests/`, `results/`
+- [x] lint config (ruff) + minimal CI (optional)
+- [x] smoke test: forward pass of a tiny model on a random batch
 
-**Done when:** `uv run pytest` passes and the repo layout exists.
+**Done when:** `uv run pytest` passes and the repo layout exists. → 8/8 tests green.
 
-## Phase 1 — Data pipeline
+## Phase 1 — Data pipeline ✅
 
-- [ ] STL-10 loaders: `unlabeled` split for SSL pretraining, labeled `train`/`test` kept aside for the probe
-- [ ] augmentation pipeline producing two views: RandomResizedCrop, hflip, color jitter, grayscale, (blur)
-- [ ] CIFAR-10 debug config (faster iteration)
-- [ ] visualization script: show augmented pairs side by side
-- [ ] tests: batch shapes, both views come from the same image
+- [x] STL-10 loaders: `unlabeled` split for SSL pretraining, labeled `train`/`test` kept aside for the probe
+- [x] augmentation pipeline producing two views: RandomResizedCrop, hflip, color jitter, grayscale, (blur)
+- [x] CIFAR-10 debug config (faster iteration)
+- [x] visualization script: show augmented pairs side by side
+- [x] tests: batch shapes, both views come from the same image
 
-**Done when:** a script displays trustworthy augmented pairs and the labeled data is untouched by pretraining.
+**Done when:** a script displays trustworthy augmented pairs and the labeled data is untouched by pretraining. → verified on both datasets, see `results/figures/augmented_pairs_*.png`.
 
 ## Phase 2 — Model
 
