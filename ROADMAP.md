@@ -1,0 +1,80 @@
+# Roadmap
+
+Status legend: `[ ]` todo · `[x]` done
+
+## Phase 0 — Project scaffolding
+
+- [ ] `uv init`, dependencies: `torch`, `torchvision`, `matplotlib`, `scikit-learn`,
+      `umap-learn`, `einops`, `pyyaml`, `tqdm`, `pytest`, `ruff`
+- [ ] repo layout: `src/`, `scripts/`, `configs/`, `tests/`, `results/`
+- [ ] lint config (ruff) + minimal CI (optional)
+- [ ] smoke test: forward pass of a tiny model on a random batch
+
+**Done when:** `uv run pytest` passes and the repo layout exists.
+
+## Phase 1 — Data pipeline
+
+- [ ] STL-10 loaders: `unlabeled` split for SSL pretraining, labeled `train`/`test` kept aside for the probe
+- [ ] augmentation pipeline producing two views: RandomResizedCrop, hflip, color jitter, grayscale, (blur)
+- [ ] CIFAR-10 debug config (faster iteration)
+- [ ] visualization script: show augmented pairs side by side
+- [ ] tests: batch shapes, both views come from the same image
+
+**Done when:** a script displays trustworthy augmented pairs and the labeled data is untouched by pretraining.
+
+## Phase 2 — Model
+
+- [ ] ResNet-18 backbone adapted for small images (3×3 stem, no maxpool) — STL-10 at 96×96
+- [ ] MLP projector with BatchNorm in hidden layers (as in BT / VICReg)
+- [ ] checkpoint save/load, reproducible init
+
+**Done when:** backbone + projector produce the expected embedding shapes.
+
+## Phase 3 — Losses & training loop
+
+- [ ] naive invariance loss: `||z_A - z_B||²`
+- [ ] Barlow Twins loss: batch cross-correlation, on-diagonal + λ · off-diagonal terms
+- [ ] VICReg loss: invariance + variance hinge (target γ) + covariance penalty, weights (λ, μ, ν)
+- [ ] single config-driven trainer: per-term logging, checkpointing, fixed seeds
+
+**Done when:** the three experiments train through the same trainer, differing only by config.
+
+## Phase 4 — Collapse diagnostics
+
+- [ ] embedding collection on a fixed eval set
+- [ ] per-dimension variance curve over training
+- [ ] covariance heatmap
+- [ ] singular value spectrum of the embedding matrix
+- [ ] effective rank over training
+- [ ] UMAP / PCA projection colored by true label
+
+**Done when:** each diagnostic is one function + one figure, runnable on any checkpoint.
+
+## Phase 5 — Linear evaluation
+
+- [ ] freeze encoder, train logistic regression on the labeled train split
+- [ ] report test accuracy (+ per-class)
+
+**Done when:** a single number per run lands in the results table.
+
+## Phase 6 — Experiments & figures
+
+- [ ] run A (naive), B (Barlow Twins), C (VICReg) with identical budget
+- [ ] generate every README figure: variance curve, heatmap, spectrum, effective rank, UMAP
+- [ ] results table (loss, std, rank, linear probe)
+
+**Done when:** the collapse story is visible in the figures without any explanation.
+
+## Phase 7 — Polish & release
+
+- [ ] fill the README results section
+- [ ] short write-up of findings and surprises
+- [ ] tag `v1.0`
+
+---
+
+## Where to start
+
+**Phase 0 → Phase 1.** The single most important early artifact is the pair-visualization
+script: every downstream conclusion rests on the augmentations being correct. Get the data
+right before writing any loss.
