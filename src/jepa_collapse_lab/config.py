@@ -5,7 +5,7 @@ from typing import Any
 
 import yaml
 
-REQUIRED_KEYS = {"dataset", "augmentation", "loader"}
+REQUIRED_KEYS = {"dataset", "augmentation", "loader", "model"}
 
 
 def load_config(path: str | Path) -> dict[str, Any]:

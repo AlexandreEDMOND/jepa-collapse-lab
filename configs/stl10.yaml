@@ -4,6 +4,11 @@ dataset:
   root: data
   image_size: 96
 
+model:
+  backbone: resnet18
+  projector_hidden: [1024, 1024]
+  projector_output: 128
+
 augmentation:
   crop_scale: [0.3, 1.0]
   jitter_strength: 0.4

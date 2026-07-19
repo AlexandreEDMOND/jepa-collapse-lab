@@ -22,13 +22,13 @@ Status legend: `[ ]` todo · `[x]` done
 
 **Done when:** a script displays trustworthy augmented pairs and the labeled data is untouched by pretraining. → verified on both datasets, see `results/figures/augmented_pairs_*.png`.
 
-## Phase 2 — Model
+## Phase 2 — Model ✅
 
-- [ ] ResNet-18 backbone adapted for small images (3×3 stem, no maxpool) — STL-10 at 96×96
-- [ ] MLP projector with BatchNorm in hidden layers (as in BT / VICReg)
-- [ ] checkpoint save/load, reproducible init
+- [x] ResNet-18 backbone adapted for small images (3×3 stem, no maxpool) — STL-10 at 96×96
+- [x] MLP projector with BatchNorm in hidden layers (as in BT / VICReg)
+- [x] checkpoint save/load, reproducible init
 
-**Done when:** backbone + projector produce the expected embedding shapes.
+**Done when:** backbone + projector produce the expected embedding shapes. → 16/16 tests green; `forward` returns `h` (512-d, for the probe) and `z` (128-d, for the losses); 12.9M params total.
 
 ## Phase 3 — Losses & training loop
 

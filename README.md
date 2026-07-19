@@ -120,8 +120,9 @@ variance curve, one heatmap, one spectrum.
 ├── configs/                     # stl10.yaml, cifar10_debug.yaml
 ├── src/jepa_collapse_lab/
 │   ├── config.py                # YAML config loading
+│   ├── utils.py                 # seeds, checkpoint save/load
 │   ├── data/                    # two-view augmentations, dataset & loader builders
-│   ├── models/                  # ResNet-18 backbone, MLP projector      (Phase 2)
+│   ├── models/                  # ResNet-18 small-image backbone, MLP projector, SSLModel
 │   ├── losses/                  # naive, Barlow Twins, VICReg            (Phase 3)
 │   ├── diagnostics/             # variance, covariance, spectrum, rank   (Phase 4)
 │   └── eval/                    # linear probe                           (Phase 5)
