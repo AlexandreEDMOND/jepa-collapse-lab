@@ -17,6 +17,12 @@ def main() -> None:
     parser.add_argument("--config", default="configs/stl10.yaml")
     parser.add_argument("--experiment", choices=EXPERIMENTS, default=None)
     parser.add_argument("--epochs", type=int, default=None)
+    parser.add_argument(
+        "--max-batches",
+        type=int,
+        default=None,
+        help="Cap batches per epoch (smoke / fast debug)",
+    )
     parser.add_argument("--output-dir", default=None)
     args = parser.parse_args()
 
@@ -25,6 +31,8 @@ def main() -> None:
         cfg["experiment"]["name"] = args.experiment
     if args.epochs is not None:
         cfg["training"]["epochs"] = args.epochs
+    if args.max_batches is not None:
+        cfg["training"]["max_batches"] = args.max_batches
     if args.output_dir is not None:
         cfg["training"]["output_dir"] = args.output_dir
 

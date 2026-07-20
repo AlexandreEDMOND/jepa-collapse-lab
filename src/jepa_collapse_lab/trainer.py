@@ -28,11 +28,14 @@ def train_epoch(
     loss_fn: Callable,
     optimizer: torch.optim.Optimizer,
     device: torch.device,
+    *,
+    max_batches: int | None = None,
 ) -> dict[str, float]:
     model.train()
     totals: dict[str, float] = {}
     n_batches = 0
-    for (view_a, view_b), _ in tqdm(loader, desc="train", leave=False):
+    total = len(loader) if max_batches is None else min(len(loader), max_batches)
+    for (view_a, view_b), _ in tqdm(loader, desc="train", leave=False, total=total):
         view_a, view_b = view_a.to(device), view_b.to(device)
         _, z_a = model(view_a)
         _, z_b = model(view_b)
@@ -46,6 +49,8 @@ def train_epoch(
         for key, value in terms.items():
             totals[key] = totals.get(key, 0.0) + value
         n_batches += 1
+        if max_batches is not None and n_batches >= max_batches:
+            break
     return {key: value / max(n_batches, 1) for key, value in totals.items()}
 
 
@@ -58,6 +63,7 @@ def train(cfg: dict[str, Any]) -> Path:
     loss_fn = build_loss(cfg)
 
     tcfg = cfg["training"]
+    max_batches = tcfg.get("max_batches")
     optimizer = torch.optim.Adam(
         model.parameters(), lr=tcfg["lr"], weight_decay=tcfg["weight_decay"]
     )
@@ -68,14 +74,16 @@ def train(cfg: dict[str, Any]) -> Path:
     )
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"device={device}  run_dir={run_dir}")
+    print(f"device={device}  run_dir={run_dir}  max_batches={max_batches}")
     history = []
     for epoch in range(1, tcfg["epochs"] + 1):
-        metrics = train_epoch(model, loaders["ssl"], loss_fn, optimizer, device)
+        metrics = train_epoch(
+            model, loaders["ssl"], loss_fn, optimizer, device, max_batches=max_batches
+        )
         history.append({"epoch": epoch, **metrics})
         printable = "  ".join(f"{k}={v:.4f}" for k, v in metrics.items())
         print(f"epoch {epoch:3d}/{tcfg['epochs']}  {printable}")
         save_checkpoint(run_dir / "last.pt", model, optimizer=optimizer, epoch=epoch, config=cfg)
+        (run_dir / "history.json").write_text(json.dumps(history, indent=2))
 
-    (run_dir / "history.json").write_text(json.dumps(history, indent=2))
     return run_dir
