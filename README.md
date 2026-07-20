@@ -123,15 +123,16 @@ variance curve, one heatmap, one spectrum.
 │   ├── utils.py                 # seeds, checkpoint save/load
 │   ├── data/                    # two-view augmentations, dataset & loader builders
 │   ├── models/                  # ResNet-18 small-image backbone, MLP projector, SSLModel
-│   ├── losses/                  # naive, Barlow Twins, VICReg            (Phase 3)
-│   ├── diagnostics/             # variance, covariance, spectrum, rank   (Phase 4)
+│   ├── losses/                  # naive, Barlow Twins, VICReg
+│   ├── diagnostics/             # variance, covariance, spectrum, rank, UMAP
 │   └── eval/                    # linear probe                           (Phase 5)
 ├── scripts/
 │   ├── visualize_pairs.py       # augmentation sanity check
-│   └── train.py                 # train naive / barlow_twins / vicreg
-├── tests/                       # smoke + data + model + loss + trainer tests
+│   ├── train.py                 # train naive / barlow_twins / vicreg
+│   └── diagnose.py              # collapse figures from any checkpoint
+├── tests/                       # smoke + data + model + loss + trainer + diagnostics
 └── results/
-    ├── figures/                 # generated figures
+    ├── figures/                 # generated figures (pairs + per-run diagnostics)
     └── checkpoints/             # run dirs: {dataset}_{experiment}/
 ```
 
@@ -152,8 +153,12 @@ uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment vicreg
 # STL-10 full budget:
 # uv run scripts/train.py --config configs/stl10.yaml --experiment barlow_twins
 
-# Phase 4+ (upcoming): diagnostics + linear probe
-# uv run scripts/diagnose.py --all
+# Phase 4: collapse diagnostics on a checkpoint (or every run under results/checkpoints)
+uv run scripts/diagnose.py --checkpoint results/checkpoints/cifar10_naive/last.pt
+uv run scripts/diagnose.py --all --checkpoints-root results/checkpoints
+
+# Phase 5 (upcoming): linear probe
+# uv run scripts/probe.py --checkpoint results/checkpoints/cifar10_vicreg/last.pt
 ```
 
 The augmentation pipeline in action — two independent views of the same image

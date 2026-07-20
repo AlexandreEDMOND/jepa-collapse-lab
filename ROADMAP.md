@@ -40,16 +40,17 @@ Status legend: `[ ]` todo · `[x]` done
 **Done when:** the three experiments train through the same trainer, differing only by config.
 → `uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment {naive,barlow_twins,vicreg}`
 
-## Phase 4 — Collapse diagnostics
+## Phase 4 — Collapse diagnostics ✅
 
-- [ ] embedding collection on a fixed eval set
-- [ ] per-dimension variance curve over training
-- [ ] covariance heatmap
-- [ ] singular value spectrum of the embedding matrix
-- [ ] effective rank over training
-- [ ] UMAP / PCA projection colored by true label
+- [x] embedding collection on a fixed eval set
+- [x] per-dimension variance curve over training (`z_std` from history + per-dim bar)
+- [x] covariance heatmap
+- [x] singular value spectrum of the embedding matrix
+- [x] effective rank (scalar + spectrum figure)
+- [x] UMAP / PCA projection colored by true label
 
 **Done when:** each diagnostic is one function + one figure, runnable on any checkpoint.
+→ `uv run scripts/diagnose.py --checkpoint results/checkpoints/<run>/last.pt`
 
 ## Phase 5 — Linear evaluation
 
@@ -76,6 +77,6 @@ Status legend: `[ ]` todo · `[x]` done
 
 ## Where to start
 
-**Phase 4 — Collapse diagnostics.** Losses and the trainer are in place. Next: collect
-embeddings from a fixed eval set and plot variance / covariance / spectrum / effective rank
-so the naive collapse is visible next to BT and VICReg.
+**Phase 5 — Linear evaluation.** Diagnostics are in place. Next: freeze the backbone,
+train a logistic regression on the labeled train split, and report test accuracy so each
+run collapses to one comparable number in the results table.
