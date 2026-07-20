@@ -52,12 +52,13 @@ Status legend: `[ ]` todo · `[x]` done
 **Done when:** each diagnostic is one function + one figure, runnable on any checkpoint.
 → `uv run scripts/diagnose.py --checkpoint results/checkpoints/<run>/last.pt`
 
-## Phase 5 — Linear evaluation
+## Phase 5 — Linear evaluation ✅
 
-- [ ] freeze encoder, train logistic regression on the labeled train split
-- [ ] report test accuracy (+ per-class)
+- [x] freeze encoder, train logistic regression on the labeled train split
+- [x] report test accuracy (+ per-class)
 
 **Done when:** a single number per run lands in the results table.
+→ `uv run scripts/probe.py --checkpoint results/checkpoints/<run>/last.pt`
 
 ## Phase 6 — Experiments & figures
 
@@ -77,6 +78,6 @@ Status legend: `[ ]` todo · `[x]` done
 
 ## Where to start
 
-**Phase 5 — Linear evaluation.** Diagnostics are in place. Next: freeze the backbone,
-train a logistic regression on the labeled train split, and report test accuracy so each
-run collapses to one comparable number in the results table.
+**Phase 6 — Experiments & figures.** Linear probe is in place. Next: run A/B/C with the
+same full budget, generate every README figure, and fill the results table
+(loss, mean std, erank, linear-probe accuracy).

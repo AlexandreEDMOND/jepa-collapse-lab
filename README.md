@@ -125,12 +125,13 @@ variance curve, one heatmap, one spectrum.
 │   ├── models/                  # ResNet-18 small-image backbone, MLP projector, SSLModel
 │   ├── losses/                  # naive, Barlow Twins, VICReg
 │   ├── diagnostics/             # variance, covariance, spectrum, rank, UMAP
-│   └── eval/                    # linear probe                           (Phase 5)
+│   └── eval/                    # frozen linear probe
 ├── scripts/
 │   ├── visualize_pairs.py       # augmentation sanity check
 │   ├── train.py                 # train naive / barlow_twins / vicreg
-│   └── diagnose.py              # collapse figures from any checkpoint
-├── tests/                       # smoke + data + model + loss + trainer + diagnostics
+│   ├── diagnose.py              # collapse figures from any checkpoint
+│   └── probe.py                 # linear probe accuracy
+├── tests/
 └── results/
     ├── figures/                 # generated figures (pairs + per-run diagnostics)
     └── checkpoints/             # run dirs: {dataset}_{experiment}/
@@ -157,8 +158,9 @@ uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment vicreg
 uv run scripts/diagnose.py --checkpoint results/checkpoints/cifar10_naive/last.pt
 uv run scripts/diagnose.py --all --checkpoints-root results/checkpoints
 
-# Phase 5 (upcoming): linear probe
-# uv run scripts/probe.py --checkpoint results/checkpoints/cifar10_vicreg/last.pt
+# Phase 5: frozen linear probe (logistic regression on backbone features h)
+uv run scripts/probe.py --checkpoint results/checkpoints/cifar10_vicreg/last.pt
+uv run scripts/probe.py --all --checkpoints-root results/checkpoints
 ```
 
 The augmentation pipeline in action — two independent views of the same image
