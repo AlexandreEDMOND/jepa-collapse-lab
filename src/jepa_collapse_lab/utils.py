@@ -17,6 +17,15 @@ def set_seed(seed: int) -> None:
     torch.cuda.manual_seed_all(seed)
 
 
+def get_device() -> torch.device:
+    """Pick CUDA if available, else MPS (Apple Silicon), else CPU."""
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if getattr(torch.backends, "mps", None) is not None and torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 def save_checkpoint(
     path: str | Path,
     model: nn.Module,

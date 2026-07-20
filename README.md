@@ -127,9 +127,12 @@ variance curve, one heatmap, one spectrum.
 │   ├── diagnostics/             # variance, covariance, spectrum, rank   (Phase 4)
 │   └── eval/                    # linear probe                           (Phase 5)
 ├── scripts/
-│   └── visualize_pairs.py       # augmentation sanity check
-├── tests/                       # smoke test + data-pipeline tests
-└── results/figures/             # generated figures
+│   ├── visualize_pairs.py       # augmentation sanity check
+│   └── train.py                 # train naive / barlow_twins / vicreg
+├── tests/                       # smoke + data + model + loss + trainer tests
+└── results/
+    ├── figures/                 # generated figures
+    └── checkpoints/             # run dirs: {dataset}_{experiment}/
 ```
 
 ## Quickstart
@@ -142,10 +145,14 @@ uv run pytest
 uv run scripts/visualize_pairs.py --config configs/cifar10_debug.yaml   # fast debug
 uv run scripts/visualize_pairs.py --config configs/stl10.yaml           # main dataset
 
-# Phase 2+ (upcoming): train the three variants, then run diagnostics
-# uv run scripts/train.py experiment=naive
-# uv run scripts/train.py experiment=barlow_twins
-# uv run scripts/train.py experiment=vicreg
+# Phase 3: train the three variants (same trainer, only the loss changes)
+uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment naive
+uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment barlow_twins
+uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment vicreg
+# STL-10 full budget:
+# uv run scripts/train.py --config configs/stl10.yaml --experiment barlow_twins
+
+# Phase 4+ (upcoming): diagnostics + linear probe
 # uv run scripts/diagnose.py --all
 ```
 

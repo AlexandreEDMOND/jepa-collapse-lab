@@ -30,14 +30,15 @@ Status legend: `[ ]` todo · `[x]` done
 
 **Done when:** backbone + projector produce the expected embedding shapes. → 16/16 tests green; `forward` returns `h` (512-d, for the probe) and `z` (128-d, for the losses); 12.9M params total.
 
-## Phase 3 — Losses & training loop
+## Phase 3 — Losses & training loop ✅
 
-- [ ] naive invariance loss: `||z_A - z_B||²`
-- [ ] Barlow Twins loss: batch cross-correlation, on-diagonal + λ · off-diagonal terms
-- [ ] VICReg loss: invariance + variance hinge (target γ) + covariance penalty, weights (λ, μ, ν)
-- [ ] single config-driven trainer: per-term logging, checkpointing, fixed seeds
+- [x] naive invariance loss: `||z_A - z_B||²`
+- [x] Barlow Twins loss: batch cross-correlation, on-diagonal + λ · off-diagonal terms
+- [x] VICReg loss: invariance + variance hinge (target γ) + covariance penalty, weights (λ, μ, ν)
+- [x] single config-driven trainer: per-term logging, checkpointing, fixed seeds
 
 **Done when:** the three experiments train through the same trainer, differing only by config.
+→ `uv run scripts/train.py --config configs/cifar10_debug.yaml --experiment {naive,barlow_twins,vicreg}`
 
 ## Phase 4 — Collapse diagnostics
 
@@ -75,6 +76,6 @@ Status legend: `[ ]` todo · `[x]` done
 
 ## Where to start
 
-**Phase 0 → Phase 1.** The single most important early artifact is the pair-visualization
-script: every downstream conclusion rests on the augmentations being correct. Get the data
-right before writing any loss.
+**Phase 4 — Collapse diagnostics.** Losses and the trainer are in place. Next: collect
+embeddings from a fixed eval set and plot variance / covariance / spectrum / effective rank
+so the naive collapse is visible next to BT and VICReg.

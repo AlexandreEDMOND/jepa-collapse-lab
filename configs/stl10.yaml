@@ -19,4 +19,22 @@ loader:
   batch_size: 256
   num_workers: 4
 
+experiment:
+  name: naive  # naive | barlow_twins | vicreg
+
+loss:
+  # Barlow Twins
+  lambda_offdiag: 5.0e-3
+  # VICReg
+  lambda_inv: 25.0
+  mu_var: 25.0
+  nu_cov: 1.0
+  gamma: 1.0
+
+training:
+  epochs: 50
+  lr: 3.0e-4
+  weight_decay: 1.0e-6
+  output_dir: results/checkpoints
+
 seed: 0
