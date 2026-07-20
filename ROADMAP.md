@@ -81,3 +81,57 @@ Status legend: `[ ]` todo · `[x]` done
 **Phase 6 — Experiments & figures.** Linear probe is in place. Next: run A/B/C with the
 same full budget, generate every README figure, and fill the results table
 (loss, mean std, erank, linear-probe accuracy).
+
+### Handoff notes (2026-07-20) — read before Phase 6
+
+Moving to the Linux + RTX 3090 machine for the full-budget runs (MPS on the MacBook is
+too slow, see pitfall below). State: Phases 0–5 done, 40/40 tests green, CIFAR-10 debug
+runs (5 epochs) done for all three experiments.
+
+CIFAR-10 debug results (5 epochs, `results/checkpoints/cifar10_*/` on the Mac — not
+committed, numbers copied here):
+
+| run            | z_std (first→last) | loss (last) | mean_std | eff. rank | probe acc (h) |
+| -------------- | ------------------ | ----------- | -------- | --------- | ------------- |
+| naive          | 0.072 → 0.0077     | 1.1e-4      | 0.0079   | **109.6** | **40.8 %**    |
+| barlow_twins   | 0.79 → 1.05        | 19.4        | 1.15     | 20.7      | 49.4 %        |
+| vicreg         | 0.56 → 0.74        | 26.7        | 0.75     | 49.9      | 52.2 %        |
+
+Two open questions to settle BEFORE the 3 STL-10 runs:
+
+1. **Naive probe is 40.8 %, not ~chance (10 %).** The probe reads `h` (backbone), the
+   collapse is measured on `z` (projector). Hypothesis: the projector collapses to a
+   constant map while the backbone stays near its random init (random-feature probe on
+   CIFAR-10 is ~30–40 %). Test: `uv run scripts/train.py --config configs/cifar10_debug.yaml
+   --experiment naive --epochs 20 --output-dir results/checkpoints_long`, then
+   `diagnose.py` + `probe.py` on that checkpoint. If probe(h) stays ~40 % while z_std → 0,
+   that's a finding for the write-up (collapse in z ≠ collapse in h); consider also
+   reporting probe(z) in the results table.
+2. **Effective rank is misleading on collapsed runs** (naive shows 109.6 because the SVD
+   of a near-constant matrix sees only numerical noise, whose spectrum is almost flat).
+   Options: threshold tiny singular values, report erank only when mean_std is above a
+   noise floor, or keep the metric and explain the artefact. Decide after seeing the
+   naive-long numbers.
+
+On the RTX machine, in order:
+
+```bash
+uv sync && uv run pytest            # sanity
+# 1. STL-10 smoke (validates pipeline + measures s/step; ~390 batches/epoch at bs=256):
+uv run scripts/train.py --config configs/stl10.yaml --experiment naive --epochs 1 \
+    --max-batches 20 --output-dir /tmp/stl10_smoke
+# 2. Naive-long CIFAR-10 test (question 1 above), then diagnose + probe on it
+# 3. The three full-budget runs (identical budget!):
+uv run scripts/train.py --config configs/stl10.yaml --experiment naive
+uv run scripts/train.py --config configs/stl10.yaml --experiment barlow_twins
+uv run scripts/train.py --config configs/stl10.yaml --experiment vicreg
+```
+
+With 24 GB VRAM, `batch_size: 512` (or 1024) fits easily and Barlow Twins likes large
+batches — but keep it identical across the three runs.
+
+**macOS pitfall (why the move):** STL-10 `unlabeled` is a 2.9 GB in-memory numpy array;
+on macOS DataLoader workers use *spawn*, so the whole dataset is pickled to each worker
+(4 workers ≈ 12 GB copied) → training appears to hang before batch 1. On Linux the
+default *fork* start method shares memory copy-on-write, so `num_workers: 4` is fine.
+If back on macOS: set `num_workers: 0` in `configs/stl10.yaml`.
