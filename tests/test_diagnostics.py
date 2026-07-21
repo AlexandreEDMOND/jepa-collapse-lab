@@ -79,6 +79,15 @@ def test_summarize_embeddings_keys():
     assert {"mean_std", "effective_rank", "n_samples", "dim"} <= s.keys()
 
 
+def test_summarize_embeddings_gates_erank_when_collapsed():
+    healthy = summarize_embeddings(_full_rank_batch())
+    assert healthy["effective_rank"] is not None
+    assert healthy["collapsed"] is False
+    collapsed = summarize_embeddings(_collapsed_batch())
+    assert collapsed["effective_rank"] is None  # noise-dominated → not reported
+    assert collapsed["collapsed"] is True
+
+
 def test_select_embeddings():
     bundle = {"h": torch.randn(4, 8), "z": torch.randn(4, 4), "y": torch.arange(4)}
     z, y = select_embeddings(bundle, "z")

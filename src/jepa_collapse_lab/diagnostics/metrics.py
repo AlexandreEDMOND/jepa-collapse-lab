@@ -1,7 +1,14 @@
 """Scalar and matrix collapse metrics on an embedding matrix Z (N, D)."""
 
+from typing import Any
+
 import torch
 from torch import Tensor
+
+# Below this mean per-dim std the embeddings carry no signal: the SVD sees only
+# numerical noise, whose near-flat spectrum makes the entropy-based effective rank
+# meaningless (a collapsed run can show erank ≈ 37–110). Gate reporting on this floor.
+COLLAPSE_STD_FLOOR = 1e-2
 
 
 def per_dim_std(z: Tensor, eps: float = 1e-12) -> Tensor:
@@ -53,14 +60,21 @@ def effective_rank(z: Tensor, center: bool = True, eps: float = 1e-12) -> float:
     return float(torch.exp(entropy).item())
 
 
-def summarize_embeddings(z: Tensor) -> dict[str, float]:
-    """Compact dict of scalar collapse diagnostics for logging / tables."""
+def summarize_embeddings(z: Tensor) -> dict[str, Any]:
+    """Compact dict of scalar collapse diagnostics for logging / tables.
+
+    ``effective_rank`` is ``None`` when the embedding is collapsed (mean per-dim std
+    below ``COLLAPSE_STD_FLOOR``): the metric is noise-dominated there.
+    """
     std = per_dim_std(z)
+    mean_std = std.mean().item()
+    collapsed = mean_std < COLLAPSE_STD_FLOOR
     return {
-        "mean_std": std.mean().item(),
+        "mean_std": mean_std,
         "min_std": std.min().item(),
         "max_std": std.max().item(),
-        "effective_rank": effective_rank(z),
+        "effective_rank": None if collapsed else effective_rank(z),
+        "collapsed": collapsed,
         "n_samples": float(z.shape[0]),
         "dim": float(z.shape[1]),
     }

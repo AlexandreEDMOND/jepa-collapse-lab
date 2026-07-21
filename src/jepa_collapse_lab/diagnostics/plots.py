@@ -15,6 +15,7 @@ import numpy as np
 from torch import Tensor
 
 from .metrics import (
+    COLLAPSE_STD_FLOOR,
     correlation_matrix,
     effective_rank,
     mean_per_dim_std,
@@ -79,8 +80,11 @@ def plot_singular_spectrum(z: Tensor, path: str | Path, *, title: str | None = N
     ax.semilogy(np.arange(1, len(sigma) + 1), sigma + 1e-12, color="darkorange", lw=1.5)
     ax.set_xlabel("component index")
     ax.set_ylabel("singular value")
-    er = effective_rank(z)
-    ax.set_title(title or f"Singular spectrum  (erank={er:.1f})")
+    if mean_per_dim_std(z) < COLLAPSE_STD_FLOOR:
+        erank_label = "erank=n/a (collapsed)"
+    else:
+        erank_label = f"erank={effective_rank(z):.1f}"
+    ax.set_title(title or f"Singular spectrum  ({erank_label})")
     ax.grid(True, which="both", ls=":", alpha=0.5)
     return _save(fig, Path(path))
 
