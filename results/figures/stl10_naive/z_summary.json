@@ -1,0 +1,9 @@
+{
+  "mean_std": 0.005618918687105179,
+  "min_std": 0.0008603997994214296,
+  "max_std": 0.020917296409606934,
+  "effective_rank": null,
+  "collapsed": true,
+  "n_samples": 2000.0,
+  "dim": 128.0
+}

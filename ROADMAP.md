@@ -60,13 +60,17 @@ Status legend: `[ ]` todo · `[x]` done
 **Done when:** a single number per run lands in the results table.
 → `uv run scripts/probe.py --checkpoint results/checkpoints/<run>/last.pt`
 
-## Phase 6 — Experiments & figures
+## Phase 6 — Experiments & figures ✅
 
-- [ ] run A (naive), B (Barlow Twins), C (VICReg) with identical budget
-- [ ] generate every README figure: variance curve, heatmap, spectrum, effective rank, UMAP
-- [ ] results table (loss, std, rank, linear probe)
+- [x] run A (naive), B (Barlow Twins), C (VICReg) with identical budget
+- [x] generate every README figure: variance curve, heatmap, spectrum, effective rank, UMAP
+- [x] results table (loss, std, rank, linear probe)
 
 **Done when:** the collapse story is visible in the figures without any explanation.
+→ STL-10, 10 epochs, bs=256, seed 0. Table: `results/results_table.md`; figures:
+`results/figures/stl10_*/`. Naive: z_std 0,004, probe(h) 42,9 % (random features),
+UMAP dégénéré. Barlow Twins: z_std 0,86, erank 61,6, probe(h) 71,8 %. VICReg:
+z_std 1,00 (= γ), erank 87,6, probe(h) 73,5 %.
 
 ## Phase 7 — Polish & release
 
@@ -135,3 +139,61 @@ on macOS DataLoader workers use *spawn*, so the whole dataset is pickled to each
 (4 workers ≈ 12 GB copied) → training appears to hang before batch 1. On Linux the
 default *fork* start method shares memory copy-on-write, so `num_workers: 4` is fine.
 If back on macOS: set `num_workers: 0` in `configs/stl10.yaml`.
+
+### Handoff notes (2026-07-20, soir) — RTX 3090, après premiers essais
+
+**Le module `data/` a dû être reconstruit** : `data/` dans `.gitignore` matchait aussi
+`src/jepa_collapse_lab/data/`, le package n'avait jamais été commité. Recréé
+(`augmentations.py`, `loaders.py`), `.gitignore` corrigé (`data/` → `/data/`), 41/41 tests.
+
+**Réponses aux deux questions ouvertes** (naive-long CIFAR-10, 20 epochs,
+`results/checkpoints_long/cifar10_naive/`) :
+
+1. probe(h) = **41,9 %** alors que z est totalement collapssé (mean_std = 0,0009) → le
+   collapse a lieu dans le projecteur ; le backbone reste proche de son init (niveau
+   random-features). probe(z) = 32,9 % ≠ 10 % parce que le `StandardScaler` du probe
+   ré-amplifie les variations résiduelles ~1e-4 — à mentionner dans le write-up.
+2. erank(collapsé) = 37,1 (bruit numérique, spectre quasi-plat) → **erank gaté** dans
+   `summarize_embeddings` : `None` + `"collapsed": true` quand mean_std < 1e-2
+   (`COLLAPSE_STD_FLOOR` dans `diagnostics/metrics.py`). La métrique elle-même est
+   inchangée ; le titre du spectre affiche « erank=n/a (collapsed) ».
+
+**Budget des runs STL-10 (décision du soir) :** bs=512/1024 ne rentre **pas** en 24 Go
+(fp32 eager : ResNet-18 sans maxpool garde des activations 64×96×96 ×2 vues ≈ 20,5 Go
+à bs=256, mesuré). Mesure réelle : 1,22 it/s → ~5,3 min/epoch à bs=256. 50 epochs
+(4,4 h/run) jugé trop long → **budget réduit à 10 epochs (~53 min/run, ~2 h 40 total)**,
+toujours identique pour les trois runs. Le naive collappe dès l'epoch ~5, 10 epochs
+suffisent au contraste BT/VICReg.
+
+**Commandes à lancer (demain matin, ~2 h 40 au total) :**
+
+```bash
+cd ~/CodePuant/jepa-collapse-lab
+uv run scripts/train.py --config configs/stl10.yaml --experiment naive        --epochs 10
+uv run scripts/train.py --config configs/stl10.yaml --experiment barlow_twins --epochs 10
+uv run scripts/train.py --config configs/stl10.yaml --experiment vicreg       --epochs 10
+```
+
+Puis diagnostics + probes (~15 min) :
+
+```bash
+uv run scripts/diagnose.py --all --checkpoints-root results/checkpoints
+uv run scripts/probe.py    --all --checkpoints-root results/checkpoints            # probe(h)
+uv run scripts/probe.py    --all --checkpoints-root results/checkpoints --space z  # probe(z)
+```
+
+### Résultats STL-10 (2026-07-21) — Phase 6 terminée
+
+Runs séquentiels ~53 min chacun (1,22 it/s). Table complète : `results/results_table.md`.
+
+| run | loss | z_std | mean_std | erank | probe(h) | probe(z) |
+| --- | --- | --- | --- | --- | --- | --- |
+| naive | 2,6e-5 | 0,0039 | 0,0056 | n/a (collapsed) | 42,9 % | 33,1 % |
+| barlow_twins | 2,81 | 0,86 | 0,91 | 61,6 | 71,8 % | 66,1 % |
+| vicreg | 9,08 | 1,00 | 1,03 | 87,6 | 73,5 % | 67,8 % |
+
+Confirmé sur STL-10 : le probe(h) du naive reste au niveau random-features (~43 %) —
+le collapse est dans le projecteur, pas le backbone. probe(z) du naive = 33 % ≠ 10 % :
+artefact du `StandardScaler` qui ré-amplifie les variations résiduelles (à expliquer
+dans le write-up, Phase 7). Figures dans `results/figures/stl10_*/` (le spectre du
+naive affiche « erank=n/a (collapsed) », UMAP naive dégénéré vs clusters VICReg).
