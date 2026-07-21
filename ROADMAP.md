@@ -72,19 +72,20 @@ Status legend: `[ ]` todo · `[x]` done
 UMAP dégénéré. Barlow Twins: z_std 0,86, erank 61,6, probe(h) 71,8 %. VICReg:
 z_std 1,00 (= γ), erank 87,6, probe(h) 73,5 %.
 
-## Phase 7 — Polish & release
+## Phase 7 — Polish & release ✅
 
-- [ ] fill the README results section
-- [ ] short write-up of findings and surprises
-- [ ] tag `v1.0`
+- [x] fill the README results section
+- [x] short write-up of findings and surprises
+- [x] tag `v1.0`
 
 ---
 
 ## Where to start
 
-**Phase 6 — Experiments & figures.** Linear probe is in place. Next: run A/B/C with the
-same full budget, generate every README figure, and fill the results table
-(loss, mean std, erank, linear-probe accuracy).
+**Projet terminé — v1.0.** Phases 0–7 complètes. Résultats dans le README (section
+*Results* / *Findings and surprises*), table dans `results/results_table.md`, figures
+dans `results/figures/`. Les notes de handoff ci-dessous retracent les décisions
+(module `data/` reconstruit, gate erank, budget 10 epochs / bs=256 sur RTX 3090).
 
 ### Handoff notes (2026-07-20) — read before Phase 6
 

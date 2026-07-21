@@ -4,7 +4,7 @@
 
 ![python](https://img.shields.io/badge/python-3.11+-blue)
 ![pytorch](https://img.shields.io/badge/pytorch-2.x-orange)
-![status](https://img.shields.io/badge/status-work%20in%20progress-yellow)
+![status](https://img.shields.io/badge/status-v1.0-brightgreen)
 
 A small, self-contained experimental lab that **reproduces representation collapse** in a
 joint-embedding architecture, **diagnoses it quantitatively**, and shows how two classic
@@ -49,8 +49,8 @@ The network progressively discovers it can emit a constant vector. Expected sign
 
 - per-dimension variance of embeddings $\to 0$,
 - all embeddings nearly identical,
-- effective rank of the embedding matrix $\to 1$,
-- linear-probe accuracy $\to$ chance level.
+- effective rank of the embedding matrix $\to 1$ *(in practice: noise-dominated, see Findings)*,
+- linear-probe accuracy $\to$ chance level *(in practice: random-feature level, see Findings)*.
 
 **Key lesson: a low loss does not mean a good representation.**
 
@@ -88,7 +88,7 @@ VICReg makes the fight against collapse fully explicit: invariance, variance, de
 | -------------- | ---------------------------------------------------------------------- |
 | Dataset        | **STL-10**: 100k unlabeled images for pretraining; labeled split used **only** for linear evaluation. CIFAR-10 as a cheap debug config. |
 | Backbone       | ResNet-18 (small-image stem: 3×3 conv, no maxpool)                      |
-| Projector      | MLP (e.g. 512→512→128; Barlow Twins benefits from a wider projector)   |
+| Projector      | MLP 512→1024→1024→128, BatchNorm in hidden layers (`h`: probe space, `z`: loss space) |
 | Augmentations  | RandomResizedCrop, horizontal flip, color jitter, grayscale, blur      |
 | Protocol       | Same backbone / augmentations / epochs / optimizer for A, B, C; fixed seeds |
 
@@ -103,16 +103,58 @@ VICReg makes the fight against collapse fully explicit: invariance, variance, de
 | UMAP / PCA projection     | Visual cluster structure (colored by true label)                     |
 | Linear probe accuracy     | Frozen encoder + logistic regression on the labeled split            |
 
-## Expected results
+## Results
 
-| Method          | Invariance loss ↓ | Mean per-dim std | Effective rank | Linear probe acc |
-| --------------- | ----------------- | ---------------- | -------------- | ---------------- |
-| A — Naive       | → 0 *(degenerate)*| → 0              | → 1            | ~ chance (≈10 %) |
-| B — Barlow Twins| low, healthy      | ≈ 1              | high           | good             |
-| C — VICReg      | low, healthy      | ≈ γ (hinged)     | high           | good             |
+STL-10 pretraining on the 100k `unlabeled` split — **identical budget for the three runs**
+(10 epochs, batch 256, Adam lr 3e-4, seed 0, ResNet-18 + 512→1024→1024→128 projector,
+single RTX 3090). Linear probe: multinomial logistic regression on frozen features,
+labeled `train`/`test` splits only. Full machine-readable table:
+[`results/results_table.md`](results/results_table.md).
 
-The visual punchline: **the naive model collapses, the other two don't** — visible in one
-variance curve, one heatmap, one spectrum.
+| Method           | Loss (last) | z_std (last) | Mean per-dim std | Effective rank | Probe acc (h) | Probe acc (z) |
+| ---------------- | ----------- | ------------ | ---------------- | -------------- | ------------- | ------------- |
+| A — Naive        | 2.6e-5 *(degenerate)* | **0.004** | 0.006    | n/a (collapsed) | 42.9 % | 33.1 % |
+| B — Barlow Twins | 2.81        | 0.86         | 0.91             | 61.6           | **71.8 %**    | 66.1 %       |
+| C — VICReg       | 9.08        | 1.00 (= γ)   | 1.03             | 87.6           | **73.5 %**    | 67.8 %       |
+
+**The naive model collapses, the other two don't** — visible in every figure, no
+explanation needed. Per-dimension std over training (the collapse curve) and the singular
+spectrum of the embedding matrix:
+
+| | A — Naive (collapse) | C — VICReg (healthy) |
+| --- | --- | --- |
+| Training curves | ![naive training curves](results/figures/stl10_naive/z_training_curves.png) | ![vicreg training curves](results/figures/stl10_vicreg/z_training_curves.png) |
+| Per-dim std | ![naive per-dim std](results/figures/stl10_naive/z_per_dim_std.png) | ![vicreg per-dim std](results/figures/stl10_vicreg/z_per_dim_std.png) |
+| Singular spectrum | ![naive spectrum](results/figures/stl10_naive/z_spectrum.png) | ![vicreg spectrum](results/figures/stl10_vicreg/z_spectrum.png) |
+| UMAP, colored by label | ![naive UMAP](results/figures/stl10_naive/z_umap.png) | ![vicreg UMAP](results/figures/stl10_vicreg/z_umap.png) |
+
+All per-run figures (incl. covariance heatmaps and PCA projections):
+[`results/figures/`](results/figures). Reproduce with
+`scripts/diagnose.py --all` and `scripts/probe.py --all` (see Quickstart).
+
+## Findings and surprises
+
+1. **Collapse lives in the projector, not the backbone.** With the naive loss, `z_std`
+   drops below 5e-3 within four epochs — yet the probe on backbone features `h` still reads
+   **42.9 %**, roughly the random-feature level (a random-init encoder scores ~34–43 % in
+   our smoke checks). The encoder barely moves from its random init; all the "learning" is
+   the projector collapsing to a near-constant map. A low loss does not mean a good
+   representation — but a collapsed loss does not mean a destroyed backbone either.
+2. **A standardized probe can half-see through collapse.** Probe(z) on the collapsed run
+   reads **33.1 %**, far above the ~10 % chance level: the pipeline standardizes features,
+   and dividing by a ~1e-4 per-dim std re-amplifies the residual variation to O(1), where
+   a linear model partially reads labels again. Interpret probe(z) on collapsed runs with
+   care — collapse metrics (std, spectrum) are the ground truth.
+3. **Effective rank is noise-dominated under collapse.** On a near-constant embedding
+   matrix the SVD sees only numerical noise, whose almost-flat spectrum yields erank
+   ≈ 37–110 instead of ~1 — the opposite of the naive expectation. We therefore report
+   erank only when the mean per-dim std is above a noise floor
+   (`COLLAPSE_STD_FLOOR = 1e-2` in `diagnostics/metrics.py`); collapsed runs show
+   "n/a (collapsed)".
+4. **Practical note — VRAM.** In fp32, the small-image ResNet-18 (no maxpool) keeps
+   64×96×96 activations through layer 1; two views + backward ≈ 20.5 GiB at batch 256, so
+   batch 512 does not fit in 24 GiB. All three runs use batch 256 — identical budget
+   matters more than large batches.
 
 ## Repository structure
 
