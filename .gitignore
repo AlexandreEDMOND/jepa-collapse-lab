@@ -10,8 +10,8 @@ venv/
 # uv
 .python-version
 
-# Data & artifacts
-data/
+# Data & artifacts (root-level dataset dir only — NOT src/jepa_collapse_lab/data/)
+/data/
 checkpoints/
 results/checkpoints/
 *.ckpt
