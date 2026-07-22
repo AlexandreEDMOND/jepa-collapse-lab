@@ -54,6 +54,44 @@ def collect_embeddings(
     return {"h": h_all, "z": z_all, "y": y_all}
 
 
+@torch.no_grad()
+def collect_paired_embeddings(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    max_samples: int | None = None,
+    show_progress: bool = True,
+) -> dict[str, Tensor]:
+    """Run paired SSL views through ``model`` and stack their embeddings.
+
+    The returned ``*_a`` and ``*_b`` tensors contain aligned augmentations of the
+    same source images, suitable for cross-correlation diagnostics.
+    """
+    model.eval()
+    embeddings: dict[str, list[Tensor]] = {key: [] for key in ("h_a", "h_b", "z_a", "z_b")}
+    n = 0
+    iterator = tqdm(loader, desc="collect paired", leave=False) if show_progress else loader
+    for (view_a, view_b), _ in iterator:
+        view_a, view_b = view_a.to(device), view_b.to(device)
+        h_a, z_a = model(view_a)
+        h_b, z_b = model(view_b)
+        for key, value in (("h_a", h_a), ("h_b", h_b), ("z_a", z_a), ("z_b", z_b)):
+            embeddings[key].append(value.cpu())
+        n += view_a.shape[0]
+        if max_samples is not None and n >= max_samples:
+            break
+
+    return {
+        key: (
+            torch.cat(values, dim=0)[:max_samples]
+            if max_samples is not None
+            else torch.cat(values, dim=0)
+        )
+        for key, values in embeddings.items()
+    }
+
+
 def select_embeddings(bundle: dict[str, Tensor], space: str = "z") -> tuple[Tensor, Tensor]:
     """Return ``(embeddings, labels)`` for ``space`` in ``{'h', 'z'}``."""
     if space not in {"h", "z"}:

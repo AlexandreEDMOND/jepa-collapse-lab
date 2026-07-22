@@ -1,9 +1,16 @@
 """Collapse diagnostics: variance, covariance, spectrum, effective rank, UMAP."""
 
-from .collect import collect_embeddings, load_model_from_checkpoint, select_embeddings
+from .collect import (
+    collect_embeddings,
+    collect_paired_embeddings,
+    load_model_from_checkpoint,
+    select_embeddings,
+)
 from .metrics import (
     correlation_matrix,
     covariance_matrix,
+    cross_correlation_matrix,
+    cross_correlation_summary,
     effective_rank,
     mean_per_dim_std,
     per_dim_std,
@@ -12,6 +19,7 @@ from .metrics import (
 )
 from .plots import (
     plot_covariance_heatmap,
+    plot_cross_correlation_heatmap,
     plot_per_dim_std,
     plot_projection,
     plot_singular_spectrum,
@@ -21,13 +29,17 @@ from .plots import (
 
 __all__ = [
     "collect_embeddings",
+    "collect_paired_embeddings",
     "correlation_matrix",
     "covariance_matrix",
+    "cross_correlation_matrix",
+    "cross_correlation_summary",
     "effective_rank",
     "load_model_from_checkpoint",
     "mean_per_dim_std",
     "per_dim_std",
     "plot_covariance_heatmap",
+    "plot_cross_correlation_heatmap",
     "plot_per_dim_std",
     "plot_projection",
     "plot_singular_spectrum",

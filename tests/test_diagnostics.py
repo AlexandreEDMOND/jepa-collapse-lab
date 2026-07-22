@@ -3,13 +3,17 @@
 import json
 from pathlib import Path
 
+import pytest
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
 from jepa_collapse_lab.diagnostics import (
     collect_embeddings,
+    collect_paired_embeddings,
     correlation_matrix,
     covariance_matrix,
+    cross_correlation_matrix,
+    cross_correlation_summary,
     effective_rank,
     mean_per_dim_std,
     per_dim_std,
@@ -20,6 +24,7 @@ from jepa_collapse_lab.diagnostics import (
 )
 from jepa_collapse_lab.diagnostics.plots import (
     plot_covariance_heatmap,
+    plot_cross_correlation_heatmap,
     plot_per_dim_std,
     plot_projection,
     plot_singular_spectrum,
@@ -53,6 +58,20 @@ def test_covariance_and_correlation_shapes():
     assert cov.shape == (8, 8)
     assert corr.shape == (8, 8)
     assert torch.allclose(corr.diag(), torch.ones(8), atol=1e-4)
+
+
+def test_cross_correlation_is_identity_for_identical_embeddings():
+    z = _full_rank_batch(d=8)
+    cross_corr = cross_correlation_matrix(z, z.clone())
+    summary = cross_correlation_summary(z, z.clone())
+    assert cross_corr.shape == (8, 8)
+    assert torch.allclose(cross_corr.diag(), torch.ones(8), atol=1e-4)
+    assert summary["diagonal_error"] < 1e-6
+
+
+def test_cross_correlation_requires_paired_shapes():
+    with pytest.raises(ValueError, match="equal shapes"):
+        cross_correlation_matrix(torch.randn(8, 4), torch.randn(8, 5))
 
 
 def test_singular_spectrum_descending():
@@ -115,11 +134,32 @@ def test_collect_embeddings_on_fake_model():
     assert bundle["y"].shape == (12,)
 
 
+def test_collect_paired_embeddings_on_fake_model():
+    cfg = {
+        "model": {
+            "backbone": "resnet18",
+            "projector_hidden": [64],
+            "projector_output": 16,
+        }
+    }
+    model = build_model(cfg).eval()
+    x = torch.randn(20, 3, 32, 32)
+    y = torch.randint(0, 10, (20,))
+    pairs = [((image, image.clone()), label) for image, label in zip(x, y, strict=True)]
+    loader = DataLoader(pairs, batch_size=8)
+    bundle = collect_paired_embeddings(
+        model, loader, torch.device("cpu"), max_samples=12, show_progress=False
+    )
+    assert bundle["z_a"].shape == (12, 16)
+    assert torch.allclose(bundle["z_a"], bundle["z_b"])
+
+
 def test_plots_write_files(tmp_path: Path):
     z = _full_rank_batch(n=100, d=16)
     y = torch.randint(0, 5, (100,))
     assert plot_per_dim_std(z, tmp_path / "std.png").is_file()
     assert plot_covariance_heatmap(z, tmp_path / "cov.png").is_file()
+    assert plot_cross_correlation_heatmap(z, z.clone(), tmp_path / "cross.png").is_file()
     assert plot_singular_spectrum(z, tmp_path / "spec.png").is_file()
     assert plot_projection(z, y, tmp_path / "pca.png", method="pca").is_file()
     history = [{"epoch": 1, "loss": 1.0, "z_std": 0.5}, {"epoch": 2, "loss": 0.5, "z_std": 0.1}]

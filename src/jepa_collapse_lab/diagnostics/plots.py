@@ -17,6 +17,8 @@ from torch import Tensor
 from .metrics import (
     COLLAPSE_STD_FLOOR,
     correlation_matrix,
+    cross_correlation_matrix,
+    cross_correlation_summary,
     effective_rank,
     mean_per_dim_std,
     per_dim_std,
@@ -70,6 +72,28 @@ def plot_covariance_heatmap(
     ax.set_title(title or f"Embedding {kind} heatmap")
     ax.set_xlabel("dimension")
     ax.set_ylabel("dimension")
+    return _save(fig, Path(path))
+
+
+def plot_cross_correlation_heatmap(
+    z_a: Tensor,
+    z_b: Tensor,
+    path: str | Path,
+    *,
+    title: str | None = None,
+    max_dims: int = 64,
+) -> Path:
+    """Heatmap of the cross-correlation between paired augmented views."""
+    matrix = cross_correlation_matrix(z_a, z_b).numpy()
+    if matrix.shape[0] > max_dims:
+        matrix = matrix[:max_dims, :max_dims]
+    fig, ax = plt.subplots(figsize=(5, 4))
+    im = ax.imshow(matrix, cmap="coolwarm", vmin=-1.0, vmax=1.0, interpolation="nearest")
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    summary = cross_correlation_summary(z_a, z_b)
+    ax.set_title(title or f"Paired-view cross-correlation  (diag={summary['diagonal_mean']:.2f})")
+    ax.set_xlabel("view B dimension")
+    ax.set_ylabel("view A dimension")
     return _save(fig, Path(path))
 
 

@@ -36,6 +36,43 @@ def correlation_matrix(z: Tensor, eps: float = 1e-12) -> Tensor:
     return cov / denom.clamp_min(eps)
 
 
+def cross_correlation_matrix(z_a: Tensor, z_b: Tensor, eps: float = 1e-5) -> Tensor:
+    """Cross-correlation between dimensions of paired embeddings. Shape: (D, D)."""
+    if z_a.shape != z_b.shape:
+        raise ValueError(
+            f"Expected paired embeddings with equal shapes, got {z_a.shape} and {z_b.shape}."
+        )
+    n = max(z_a.shape[0], 1)
+    z_a = (z_a - z_a.mean(dim=0, keepdim=True)) / (
+        z_a.std(dim=0, unbiased=False, keepdim=True) + eps
+    )
+    z_b = (z_b - z_b.mean(dim=0, keepdim=True)) / (
+        z_b.std(dim=0, unbiased=False, keepdim=True) + eps
+    )
+    return (z_a.T @ z_b) / n
+
+
+def cross_correlation_summary(z_a: Tensor, z_b: Tensor) -> dict[str, float]:
+    """Compact Barlow-Twins-style diagnostics for paired embeddings."""
+    cross_corr = cross_correlation_matrix(z_a, z_b)
+    diagonal_error = (cross_corr.diagonal() - 1).pow(2).mean()
+    off_diagonal = cross_corr - torch.diag_embed(cross_corr.diagonal())
+    return {
+        "diagonal_mean": cross_corr.diagonal().mean().item(),
+        "diagonal_error": diagonal_error.item(),
+        "off_diagonal_mean_square": (
+            off_diagonal.pow(2).sum() / max(off_diagonal.numel() - len(cross_corr), 1)
+        ).item(),
+        "identity_mean_square_error": (
+            cross_corr
+            - torch.eye(cross_corr.shape[0], device=cross_corr.device, dtype=cross_corr.dtype)
+        )
+        .pow(2)
+        .mean()
+        .item(),
+    }
+
+
 def singular_spectrum(z: Tensor, center: bool = True) -> Tensor:
     """Singular values of the (optionally centered) embedding matrix, descending."""
     if center:

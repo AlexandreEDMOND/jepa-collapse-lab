@@ -96,6 +96,7 @@ VICReg makes the fight against collapse fully explicit: invariance, variance, de
 
 | Diagnostic                | What it shows                                                        |
 | ------------------------- | -------------------------------------------------------------------- |
+| Paired-view cross-correlation | Alignment (diagonal) and redundancy (off-diagonal) between the two augmented views |
 | Per-dimension variance    | The collapse curve: std of each embedding dimension over training    |
 | Covariance heatmap        | Redundant vs. decorrelated dimensions                                |
 | Singular value spectrum   | How many directions the representation actually spans                |
@@ -155,6 +156,18 @@ All per-run figures (incl. covariance heatmaps and PCA projections):
    64×96×96 activations through layer 1; two views + backward ≈ 20.5 GiB at batch 256, so
    batch 512 does not fit in 24 GiB. All three runs use batch 256 — identical budget
    matters more than large batches.
+
+### Paired-view cross-correlation
+
+Each heatmap compares the first 64 projector dimensions from the two augmented views of
+the same images. A healthy representation has a bright diagonal (alignment) and a muted
+off-diagonal (low redundancy). The nearly uniform naive heatmap must be read alongside its
+near-zero per-dimension variance: correlation is no longer meaningful once the representation
+has collapsed.
+
+| Naive invariance — collapse | Barlow Twins | VICReg |
+| --- | --- | --- |
+| <img src="results/figures/cross_correlation_naive.png" alt="Naive invariance paired-view cross-correlation heatmap" width="250"> | <img src="results/figures/cross_correlation_barlow_twins.png" alt="Barlow Twins paired-view cross-correlation heatmap" width="250"> | <img src="results/figures/cross_correlation_vicreg.png" alt="VICReg paired-view cross-correlation heatmap" width="250"> |
 
 ## Repository structure
 

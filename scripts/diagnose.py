@@ -16,7 +16,10 @@ from jepa_collapse_lab.config import load_config
 from jepa_collapse_lab.data import build_loaders
 from jepa_collapse_lab.diagnostics import (
     collect_embeddings,
+    collect_paired_embeddings,
+    cross_correlation_summary,
     load_model_from_checkpoint,
+    plot_cross_correlation_heatmap,
     run_all_diagnostics,
     select_embeddings,
 )
@@ -62,6 +65,12 @@ def diagnose_checkpoint(
         max_samples=max_samples,
     )
     z, y = select_embeddings(bundle, space=space)
+    paired = collect_paired_embeddings(
+        model,
+        loaders["ssl"],
+        device,
+        max_samples=max_samples,
+    )
     out = out_dir or _resolve_out_dir(checkpoint, None)
     history = _load_history(checkpoint)
     summary = run_all_diagnostics(
@@ -72,6 +81,16 @@ def diagnose_checkpoint(
         history=history,
         make_umap=not no_umap,
     )
+    paired_a, paired_b = paired[f"{space}_a"], paired[f"{space}_b"]
+    summary["cross_correlation"] = cross_correlation_summary(paired_a, paired_b)
+    summary["figures"]["cross_correlation"] = str(
+        plot_cross_correlation_heatmap(
+            paired_a,
+            paired_b,
+            out / f"{space}_cross_correlation.png",
+        )
+    )
+    (out / f"{space}_summary.json").write_text(json.dumps(summary, indent=2))
     summary["checkpoint"] = str(checkpoint)
     summary["space"] = space
     summary["device"] = str(device)
